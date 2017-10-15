@@ -5,51 +5,54 @@ pkg load control
 bw = 1;
 
 % filter sample rate in Hz
-sample_rate = 10;
+sample_rate = 100;
 
 % continuous time filter (infinite sample rate)
 sys = tf(bw*2*pi,[1 bw*2*pi]);
 
 % discrete time filter
-sys_d = c2d(sys,1/sample_rate);
+sys_d = c2d(sys,1/sample_rate,'tustin');
 
 % frequencies to evaluate filter over
-omega = linspace(.1, sample_rate*5*pi,50000);
+omega = linspace(.1, 10*2*pi,50000);
 
 % plot side-by-side view of transfer functions
 figure;
-bode(sys,sys_d,omega)
-subplot(2,1,1)
-legend('continuous','discrete','location','northwest')
-subplot(2,1,2)
-legend('continuous','discrete','location','northwest')
+bode(sys_d,omega)
+print -djpeg filter_bode.jpg
 
-print -djpeg filter_aliasing_bode.jpg
+% show reponse to a 10 Hz signal
+freq = 10;
+t = 0:1/sample_rate:2/freq;
+u = sin(2*pi*freq*t);
+y = zeros(size(u));
 
-% get filter reponse to 11 Hz sin wave sampled at 100 Hz
-t = 0:0.01:1;
-u = sin(11*2*pi*t+pi/2);
-y = lsim(sys, u, t);
-
-% get filter reponse to 11 Hz sin wave sampled at 10 Hz
-t2 = 0:1/sample_rate:1;
-u2 = sin(11*2*pi*t2+pi/2);
-y2 = lsim(sys, u2, t2);
+for i = 2:length(t)
+	y(i) = 0.03046*u(i) + 0.03046*u(i-1) + 0.9391*y(i-1);
+end
 
 figure;
-subplot(2,1,1)
 plot(t,u)
 hold all;
 plot(t,y)
-legend('signal', 'filtered signal','location','northwest')
-title('continuous signal (no aliasing)')
+legend('u','y')
+title('filter response to 10 Hz signal')
+print -djpeg filter_10Hz.jpg
 
-subplot(2,1,2)
-plot(t2,u2)
+% show reponse to a 99.9 Hz signal (which will alias to 0.1 Hz)
+freq = 99.9;
+t = 0:1/sample_rate:10;
+u = sin(2*pi*freq*t);
+y = zeros(size(u));
+
+for i = 2:length(t)
+	y(i) = 0.03046*u(i) + 0.03046*u(i-1) + 0.9391*y(i-1);
+end
+
+figure;
+plot(t,u)
 hold all;
-plot(t2,y2)
-legend('signal', 'filtered signal','location','northwest')
-title('sampled signal (with aliasing)')
-
-print -djpeg filter_aliasing_signal.jpg
-
+plot(t,y)
+legend('u','y')
+title('filter response to 99.9 Hz signal')
+print -djpeg filter_99_9Hz.jpg
